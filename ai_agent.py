@@ -134,12 +134,20 @@ class GuandanAIAgent:
                     last_cards = last_play['cards']
                     last_value = last_cards[0]['sortValue']
                     
+                    # 调试：打印搜索过程
+                    larger_cards = [c for c in hand if c['sortValue'] > last_value]
+                    if not larger_cards:
+                        print(f"[AI-{self.player_id}] DEBUG: 手牌中无法找到 > {last_value} 的牌")
+                        print(f"[AI-{self.player_id}] DEBUG: 手牌 sortValue 列表: {[c['sortValue'] for c in hand[:10]]}")
+                    
                     for card in hand:
                         if card['sortValue'] > last_value:
                             result = self.play_cards([card])
                             if result['success']:
                                 print(f"[AI-{self.player_id}] 压牌: {card['value']}{card['suit']}")
                                 return True
+                            else:
+                                print(f"[AI-{self.player_id}] DEBUG: 压牌失败 {card['value']}{card['suit']} - {result['message']}")
                     
                     # 没找到可以压的，过牌
                     result = self.pass_turn()

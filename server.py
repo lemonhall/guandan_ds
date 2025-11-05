@@ -266,7 +266,8 @@ class GameState:
         self.last_play = {
             'playerId': player_id,
             'cards': cards,
-            'cardType': card_type
+            'cardType': card_type,
+            'isPass': False
         }
         self.pass_count = 0
         
