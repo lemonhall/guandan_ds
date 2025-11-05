@@ -17,6 +17,17 @@ class GuandanGame {
         this.initEventListeners();
     }
 
+    // 添加日志
+    addLog(message, type = 'info') {
+        const logContent = document.getElementById('gameLog');
+        const logItem = document.createElement('div');
+        logItem.className = `log-item ${type}`;
+        logItem.textContent = message;
+        logContent.appendChild(logItem);
+        // 自动滚动到底部
+        logContent.scrollTop = logContent.scrollHeight;
+    }
+
     // 初始化事件监听
     initEventListeners() {
         document.getElementById('startBtn').addEventListener('click', () => this.startGame());
@@ -73,6 +84,8 @@ class GuandanGame {
         this.gameStarted = true;
         document.getElementById('startBtn').disabled = true;
         document.getElementById('roundInfo').textContent = '游戏进行中';
+        this.addLog('游戏开始！', 'info');
+        this.addLog('正在发牌...', 'info');
 
         // 创建并洗牌
         let deck = this.createDeck();
@@ -208,6 +221,10 @@ class GuandanGame {
 
         // 显示出的牌
         this.displayPlayedCards(playerId, cards, cardType);
+        
+        // 添加到日志
+        const cardStr = cards.map(c => c.value + c.suit).join('');
+        this.addLog(`${player.name} 出了 ${cardType.name}: ${cardStr}`, 'play');
 
         // 清空选择
         this.selectedCards = [];
@@ -215,6 +232,7 @@ class GuandanGame {
         // 检查是否获胜
         if (player.cards.length === 0) {
             alert(`${player.name} 获胜！`);
+            this.addLog(`🎉 ${player.name} 获胜！游戏结束！`, 'info');
             this.endGame();
             return;
         }
@@ -248,11 +266,13 @@ class GuandanGame {
     // 过牌
     pass() {
         this.passCount++;
+        this.addLog(`${this.players[this.currentPlayer].name} 过`, 'pass');
         
         // 如果连续3个人过牌，新一轮开始
         if (this.passCount >= 3) {
             this.lastPlay = null;
             document.getElementById('playedInfo').textContent = '新一轮开始';
+            this.addLog('新一轮开始', 'info');
         }
 
         this.nextPlayer();
