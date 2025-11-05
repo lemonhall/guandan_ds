@@ -7,7 +7,6 @@ import requests
 import time
 import json
 import threading
-import signal
 import sys
 from typing import List, Dict
 from requests.adapters import HTTPAdapter
@@ -210,50 +209,39 @@ class GuandanAIAgent:
 
 
 def start_ai_agents():
-    """启动多个AI Agent的示例"""
+    """启动多个AI Agent（不阻塞主线程）"""
     global agents, threads
-    
-    # 创建3个AI Agent（玩家1、2、3）
+
     agents = [
         GuandanAIAgent(player_id=1),
         GuandanAIAgent(player_id=2),
         GuandanAIAgent(player_id=3),
     ]
-    
+
     threads = []
     for agent in agents:
-        t = threading.Thread(target=agent.run, daemon=False)  # 改为 daemon=False
+        # 使用 daemon=True，这样在极端情况下主进程退出时线程不会阻塞退出
+        t = threading.Thread(target=agent.run, daemon=True)
         t.start()
         threads.append(t)
-    
-    print("所有AI Agent已启动")
-    
-    # 等待所有线程（会被 signal handler 中断）
-    try:
-        for t in threads:
-            t.join()
-    except KeyboardInterrupt:
-        pass
+
+    print("所有AI Agent已启动（按 Ctrl+C 退出）")
 
 
-def signal_handler(signum, frame):
-    """处理 Ctrl+C 信号"""
-    print("\n\n🛑 正在关闭 AI Agent...")
-    # 设置所有 agent 的 stop_event
+def shutdown_agents():
+    """优雅关闭所有 AI Agent"""
+    print("\n🛑 正在关闭 AI Agent...")
     for agent in agents:
         agent.stop_event.set()
-    
-    # 等待线程结束（最多等待3秒）
+    # 给予线程一次机会完成当前循环（最大等待 session timeout + 1s）
     for t in threads:
-        t.join(timeout=3)
-    
+        t.join(timeout=5)
     print("✅ 所有 AI Agent 已停止")
-    sys.exit(0)
 
 
-# 全局变量
-agents = []
-threads = []
+# 全局容器
+agents: List[GuandanAIAgent] = []
+threads: List[threading.Thread] = []
 
 
 if __name__ == '__main__':
@@ -265,14 +253,15 @@ if __name__ == '__main__':
     print("3. 在前端点击'开始游戏'")
     print("4. 在另一个终端运行这个脚本: python ai_agent.py")
     print("=" * 50)
-    print("按 Ctrl+C 停止 AI Agent")
+    print("按 Ctrl+C 停止 AI Agent（可能有最多 ~3 秒等待，取决于当前网络请求 timeout）")
     print("=" * 50)
-    
-    # 注册 Ctrl+C 信号处理
-    signal.signal(signal.SIGINT, signal_handler)
-    
-    # 等待用户准备
+
     input("按Enter键启动AI Agent...")
-    
-    # 启动AI Agent
     start_ai_agents()
+
+    try:
+        # 主线程保持轻量循环，确保 KeyboardInterrupt 能被捕获
+        while True:
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        shutdown_agents()
