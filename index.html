@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>掼蛋游戏</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- 游戏标题 -->
+        <div class="game-header">
+            <h1>掼蛋游戏</h1>
+            <div class="game-info">
+                <span>当前等级: <span id="currentLevel">2</span></span>
+                <span>回合: <span id="roundInfo">准备中</span></span>
+            </div>
+        </div>
+
+        <!-- 四个玩家区域 -->
+        <div class="players-area">
+            <!-- 上方玩家（对家） -->
+            <div class="player player-top">
+                <div class="player-info">
+                    <span class="player-name">对家 (AI)</span>
+                    <span class="card-count">剩余: <span id="topCount">27</span>张</span>
+                </div>
+                <div class="player-cards" id="topCards">
+                    <!-- AI的牌背面显示 -->
+                </div>
+            </div>
+
+            <!-- 左侧玩家 -->
+            <div class="player player-left">
+                <div class="player-info">
+                    <span class="player-name">左侧 (AI)</span>
+                    <span class="card-count">剩余: <span id="leftCount">27</span>张</span>
+                </div>
+                <div class="player-cards" id="leftCards"></div>
+            </div>
+
+            <!-- 右侧玩家 -->
+            <div class="player player-right">
+                <div class="player-info">
+                    <span class="player-name">右侧 (AI)</span>
+                    <span class="card-count">剩余: <span id="rightCount">27</span>张</span>
+                </div>
+                <div class="player-cards" id="rightCards"></div>
+            </div>
+
+            <!-- 中间出牌区域 -->
+            <div class="play-area">
+                <div class="last-played" id="lastPlayed">
+                    <div class="played-cards" id="playedCards"></div>
+                    <div class="played-info" id="playedInfo"></div>
+                </div>
+            </div>
+
+            <!-- 下方玩家（你） -->
+            <div class="player player-bottom">
+                <div class="player-info">
+                    <span class="player-name">我 (玩家)</span>
+                    <span class="card-count">剩余: <span id="bottomCount">27</span>张</span>
+                </div>
+                <div class="player-cards" id="bottomCards"></div>
+                <div class="player-actions">
+                    <button id="playBtn" disabled>出牌</button>
+                    <button id="passBtn" disabled>过</button>
+                    <button id="startBtn">开始游戏</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 规则说明 -->
+        <div class="rules-panel">
+            <h3>游戏规则简介</h3>
+            <ul>
+                <li><strong>游戏目标：</strong>与对家配合，先升到A级获胜</li>
+                <li><strong>牌型：</strong>单牌、对子、三张、顺子、连对、三带二、炸弹等</li>
+                <li><strong>逢人配：</strong>红桃当前等级的牌可以当任意牌（配牌）</li>
+                <li><strong>炸弹：</strong>4张及以上同点数牌，可以炸掉普通牌型</li>
+                <li><strong>同花顺：</strong>同花色顺子，最强牌型之一</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>

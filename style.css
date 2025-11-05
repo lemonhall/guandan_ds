@@ -1,0 +1,309 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.game-container {
+    width: 100%;
+    max-width: 1400px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+}
+
+.game-header {
+    text-align: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #2a5298;
+    padding-bottom: 15px;
+}
+
+.game-header h1 {
+    color: #1e3c72;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+.game-info {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    font-size: 1.1em;
+    color: #333;
+    font-weight: bold;
+}
+
+.players-area {
+    position: relative;
+    width: 100%;
+    height: 1000px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.player {
+    position: absolute;
+}
+
+.player-top {
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+}
+
+.player-bottom {
+    bottom: 0px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 700px;
+}
+
+.player-left {
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100px;
+}
+
+.player-right {
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100px;
+}
+
+.player-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding: 8px 15px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.player-name {
+    font-weight: bold;
+    color: #1e3c72;
+}
+
+.card-count {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.player-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+    min-height: 100px;
+    position: relative;
+    z-index: 1;
+}
+
+.card {
+    width: 60px;
+    height: 90px;
+    background: white;
+    border: 2px solid #333;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    user-select: none;
+}
+
+.card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.card.selected {
+    transform: translateY(-20px);
+    border-color: #ff6b6b;
+    box-shadow: 0 5px 20px rgba(255, 107, 107, 0.5);
+}
+
+.card.red {
+    color: #e74c3c;
+}
+
+.card.black {
+    color: #2c3e50;
+}
+
+.card-back {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: 2px solid #333;
+}
+
+.card-value {
+    font-size: 1.3em;
+}
+
+.card-suit {
+    font-size: 1.5em;
+    margin-top: 5px;
+}
+
+.play-area {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 450px;
+    min-height: 140px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 3px dashed #2a5298;
+    border-radius: 15px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.last-played {
+    text-align: center;
+}
+
+.played-cards {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.played-info {
+    font-size: 1.1em;
+    color: #1e3c72;
+    font-weight: bold;
+}
+
+.player-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.player-actions button {
+    padding: 12px 30px;
+    font-size: 1.1em;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+#playBtn {
+    background: #27ae60;
+    color: white;
+}
+
+#playBtn:hover:not(:disabled) {
+    background: #229954;
+    transform: scale(1.05);
+}
+
+#passBtn {
+    background: #e74c3c;
+    color: white;
+}
+
+#passBtn:hover:not(:disabled) {
+    background: #c0392b;
+    transform: scale(1.05);
+}
+
+#startBtn {
+    background: #3498db;
+    color: white;
+}
+
+#startBtn:hover {
+    background: #2980b9;
+    transform: scale(1.05);
+}
+
+button:disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.rules-panel {
+    display: none;
+    margin-top: 20px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    border-left: 5px solid #2a5298;
+}
+
+.rules-panel h3 {
+    color: #1e3c72;
+    margin-bottom: 15px;
+}
+
+.rules-panel ul {
+    list-style-position: inside;
+    line-height: 1.8;
+    color: #333;
+}
+
+.rules-panel li {
+    margin-bottom: 8px;
+}
+
+/* 左右玩家的牌显示 */
+.player-left .card,
+.player-right .card {
+    width: 40px;
+    height: 55px;
+    font-size: 0.7em;
+}
+
+.player-left .player-cards,
+.player-right .player-cards {
+    flex-direction: column;
+    max-height: 450px;
+    overflow-y: auto;
+    gap: 3px;
+}
+
+/* 上方玩家的牌背面 */
+.player-top .card {
+    width: 45px;
+    height: 65px;
+    font-size: 0.9em;
+}
+
+.player-top .player-cards {
+    gap: 3px;
+}
