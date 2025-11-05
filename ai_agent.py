@@ -31,6 +31,10 @@ class GuandanAIAgent:
             3: '左侧'
         }
         self.position = self.position_map.get(player_id, f'玩家{player_id}')
+        
+        # 可配置的延迟（秒），改为 0.1 秒以加快速度
+        self.poll_interval = 0.1  # 轮询间隔
+        self.error_retry_interval = 0.5  # 错误重试间隔
     
     def _log(self, message):
         """打印带方位的日志"""
@@ -142,15 +146,20 @@ class GuandanAIAgent:
                     self._log("选择过牌")
                     return False
                 else:
-                    # 尝试找大于上家的单牌
+                    # 尝试找大于上家的单牌（先本地过滤，再发送请求）
                     last_cards = last_play['cards']
+                    last_card_type = last_play['cardType']['name']
                     last_value = last_cards[0]['sortValue']
                     
-                    for card in hand:
-                        if card['sortValue'] > last_value:
-                            result = self.play_cards([card])
+                    # 策略：如果上家是单牌，找一个最小的能压的单牌
+                    if last_card_type == '单牌':
+                        candidates = [card for card in hand if card['sortValue'] > last_value]
+                        if candidates:
+                            # 选最小的能压的（贪心策略）
+                            best_card = min(candidates, key=lambda c: c['sortValue'])
+                            result = self.play_cards([best_card])
                             if result['success']:
-                                self._log(f"压牌: {card['value']}{card['suit']}")
+                                self._log(f"压牌: {best_card['value']}{best_card['suit']}")
                                 return True
                     
                     # 没找到可以压的，过牌
@@ -189,8 +198,8 @@ class GuandanAIAgent:
                     if info['isMyTurn']:
                         self.make_decision()
                 
-                # 使用 wait 替代 sleep，支持被中断
-                if self.stop_event.wait(1):  # 等待1秒或直到事件被设置
+                # 使用 wait 替代 sleep，支持被中断（改为 0.1 秒加快速度）
+                if self.stop_event.wait(self.poll_interval):
                     break
                 turns += 1
             
@@ -213,8 +222,8 @@ class GuandanAIAgent:
                 else:
                     self._log(f"❌ {error_msg}")
                 
-                # 检查是否应该停止
-                if self.stop_event.wait(2):  # 等待2秒或直到事件被设置
+                # 错误时稍作延迟再重试（改为 0.5 秒）
+                if self.stop_event.wait(self.error_retry_interval):
                     break
                 turns += 1
         
