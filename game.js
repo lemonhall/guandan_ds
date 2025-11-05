@@ -10,6 +10,8 @@ class GuandanGame {
         this.pollInterval = null;
         this.lastDisplayedPlayId = -1; // 追踪最后显示的出牌ID
         this.lastPlayerTurnRound = -1; // 追踪上次显示提醒的回合数
+        this.displayedPlayRecords = new Set(); // 用 Set 追踪已显示的记录（防止重复）
+        this.eventSource = null; // SSE 连接
         
         this.initEventListeners();
     }
@@ -76,7 +78,10 @@ class GuandanGame {
                 await this.updatePlayerHand();
                 await this.updateGameState();
                 
-                // 开始定期轮询游戏状态
+                // 连接 SSE 事件流
+                this.connectEventStream();
+                
+                // 开始定期轮询（用于非事件更新，如手牌显示）
                 this.startPolling();
             } else {
                 this.addLog(`❌ ${result.message}`, 'info');
@@ -85,6 +90,48 @@ class GuandanGame {
             this.addLog(`❌ 错误: ${error.message}`, 'info');
             console.error(error);
         }
+    }
+
+    // 连接 SSE 事件流
+    connectEventStream() {
+        if (this.eventSource) {
+            this.eventSource.close();
+        }
+        
+        this.eventSource = new EventSource(`${this.SERVER_URL}/game/events`);
+        
+        this.eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'connected') {
+                    this.addLog('📡 实时事件连接已建立', 'info');
+                } else if (data.type === 'play') {
+                    // 出牌事件
+                    if (data.playerId !== this.playerId) {
+                        this.addLog(`${data.playerName} 出了 ${data.cardType}`, 'play');
+                    }
+                    // 更新游戏状态
+                    this.updateGameState();
+                } else if (data.type === 'pass') {
+                    // 过牌事件
+                    if (data.playerId !== this.playerId) {
+                        this.addLog(`${data.playerName} 过了`, 'pass');
+                    }
+                    // 更新游戏状态
+                    this.updateGameState();
+                }
+            } catch (e) {
+                console.error('SSE 事件解析失败:', e);
+            }
+        };
+        
+        this.eventSource.onerror = (error) => {
+            console.error('SSE 连接错误:', error);
+            this.eventSource.close();
+            // 5 秒后重连
+            setTimeout(() => this.connectEventStream(), 5000);
+        };
     }
 
     // 获取玩家手牌
@@ -277,29 +324,6 @@ class GuandanGame {
             // 更新出牌显示
             if (data.lastPlay) {
                 this.displayPlayedCards(data.lastPlay);
-                
-                // 检查游戏历史中是否有新的出牌（来自其他玩家）
-                if (data.gameState && data.gameState.playHistory) {
-                    const history = data.gameState.playHistory;
-                    if (history.length > this.lastDisplayedPlayId) {
-                        // 有新的出牌记录
-                        for (let i = this.lastDisplayedPlayId + 1; i < history.length; i++) {
-                            const record = history[i];
-                            if (record.playerId !== this.playerId) {  // 不显示自己的
-                                if (record.isPass) {
-                                    this.addLog(`${record.playerName} 过了`, 'pass');
-                                } else {
-                                    const cardStr = record.cards
-                                        .map(c => `${c.value}${c.suit}`)
-                                        .join('、');
-                                    const cardType = record.cardType?.name || '出牌';
-                                    this.addLog(`${record.playerName} 出了 ${cardType}: ${cardStr}`, 'play');
-                                }
-                            }
-                        }
-                        this.lastDisplayedPlayId = history.length - 1;
-                    }
-                }
             }
             
             // 更新按钮状态
@@ -362,6 +386,11 @@ class GuandanGame {
         
         if (this.pollInterval) {
             clearInterval(this.pollInterval);
+        }
+        
+        if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
         }
     }
 }

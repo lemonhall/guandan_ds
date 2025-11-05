@@ -1,12 +1,14 @@
 """
 掼蛋游戏服务器 - Flask后端
 """
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
 import random
 import json
 from enum import Enum
 import os
+from queue import Queue
+from threading import Lock
 
 # 获取当前目录
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -16,6 +18,10 @@ CORS(app)
 
 # 全局游戏状态
 game_state = None
+
+# SSE 事件队列和锁
+sse_event_queue = Queue()
+sse_lock = Lock()
 
 class CardSuit(Enum):
     """花色"""
@@ -281,6 +287,15 @@ class GameState:
         }
         self.play_history.append(record)
         
+        # 推送 SSE 事件
+        sse_event_queue.put({
+            'type': 'play',
+            'playerName': player.name,
+            'playerId': player_id,
+            'cardType': card_type['name'],
+            'cardCount': len(player.cards)
+        })
+        
         # 检查是否获胜
         if len(player.cards) == 0:
             return {
@@ -319,6 +334,14 @@ class GameState:
             'isPass': True
         }
         self.play_history.append(record)
+        
+        # 推送 SSE 事件
+        sse_event_queue.put({
+            'type': 'pass',
+            'playerName': player.name,
+            'playerId': player_id,
+            'cardCount': len(player.cards)
+        })
         
         # 如果连续3个人过牌，新一轮开始
         if self.pass_count >= 3:
@@ -427,6 +450,35 @@ def pass_turn():
     
     result = game_state.pass_turn(player_id)
     return jsonify(result)
+
+
+@app.route('/game/events', methods=['GET'])
+def game_events():
+    """SSE 事件流端点"""
+    def event_generator():
+        # 创建一个局部队列来接收事件
+        local_queue = Queue()
+        
+        # 发送初始连接确认
+        yield f"data: {json.dumps({'type': 'connected'})}\n\n"
+        
+        while True:
+            try:
+                # 从全局队列获取事件（阻塞等待，超时 30 秒）
+                event = sse_event_queue.get(timeout=30)
+                yield f"data: {json.dumps(event)}\n\n"
+            except:
+                # 超时或其他异常，发送心跳保持连接
+                yield f": heartbeat\n\n"
+    
+    return Response(
+        event_generator(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no'
+        }
+    )
 
 
 @app.route('/game/state', methods=['GET'])

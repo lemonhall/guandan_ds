@@ -23,6 +23,18 @@ class GuandanAIAgent:
         # 创建带超时的 requests session
         self.session = requests.Session()
         self.session.timeout = 3  # 3秒超时
+        
+        # 玩家位置映射
+        self.position_map = {
+            1: '右侧',
+            2: '对家',
+            3: '左侧'
+        }
+        self.position = self.position_map.get(player_id, f'玩家{player_id}')
+    
+    def _log(self, message):
+        """打印带方位的日志"""
+        print(f"[{self.position}] {message}", flush=True)
     
     def get_turn_info(self) -> Dict:
         """获取该玩家的回合信息"""
@@ -93,20 +105,20 @@ class GuandanAIAgent:
             
             # 检查返回数据结构
             if not isinstance(info, dict) or 'isMyTurn' not in info:
-                print(f"[AI-{self.player_id}] 错误: 无效的回合信息: {info}")
+                self._log(f"错误: 无效的回合信息: {info}")
                 return False
             
             # 不是我的回合
             if not info['isMyTurn']:
-                print(f"[AI-{self.player_id}] 不是我的回合，等待...")
+                self._log("不是我的回合，等待...")
                 return False
             
             hand = info.get('hand', [])
             last_play = info.get('lastPlay')
             
-            print(f"[AI-{self.player_id}] 轮到我了！")
-            print(f"  手牌数: {len(hand)}")
-            print(f"  最后出牌: {last_play}")
+            self._log("轮到我了！")
+            self._log(f"  手牌数: {len(hand)}")
+            self._log(f"  最后出牌: {last_play}")
             
             # 简单的AI策略：
             # 1. 首轮出最小的单牌
@@ -118,16 +130,16 @@ class GuandanAIAgent:
                     card = hand[0]  # 已排序，最小的在前
                     result = self.play_cards([card])
                     if result['success']:
-                        print(f"[AI-{self.player_id}] 出了: {card['value']}{card['suit']}")
+                        self._log(f"出了: {card['value']}{card['suit']}")
                         return True
                     else:
-                        print(f"[AI-{self.player_id}] 出牌失败: {result['message']}")
+                        self._log(f"出牌失败: {result['message']}")
             else:
                 # 非首轮
                 import random
                 if random.random() < 0.3:  # 30%过牌
                     result = self.pass_turn()
-                    print(f"[AI-{self.player_id}] 选择过牌")
+                    self._log("选择过牌")
                     return False
                 else:
                     # 尝试找大于上家的单牌
@@ -138,16 +150,16 @@ class GuandanAIAgent:
                         if card['sortValue'] > last_value:
                             result = self.play_cards([card])
                             if result['success']:
-                                print(f"[AI-{self.player_id}] 压牌: {card['value']}{card['suit']}")
+                                self._log(f"压牌: {card['value']}{card['suit']}")
                                 return True
                     
                     # 没找到可以压的，过牌
                     result = self.pass_turn()
-                    print(f"[AI-{self.player_id}] 无法压牌，选择过牌")
+                    self._log("无法压牌，选择过牌")
                     return False
         
         except Exception as e:
-            print(f"[AI-{self.player_id}] 错误: {e}")
+            self._log(f"错误: {e}")
             return False
     
     def run(self, max_turns=None):
@@ -156,7 +168,7 @@ class GuandanAIAgent:
         定期检查是否轮到自己，然后做出决策
         max_turns: 最大轮数，None 表示无限运行
         """
-        print(f"[AI-{self.player_id}] AI Agent启动")
+        self._log("AI Agent启动")
         turns = 0
         consecutive_errors = 0
         
@@ -172,7 +184,7 @@ class GuandanAIAgent:
                 # 检查响应数据
                 if not isinstance(info, dict) or 'isMyTurn' not in info:
                     if turns == 0 or turns % 10 == 0:  # 定期打印，避免日志过多
-                        print(f"[AI-{self.player_id}] 等待游戏开始...")
+                        self._log("等待游戏开始...")
                 else:
                     if info['isMyTurn']:
                         self.make_decision()
@@ -193,20 +205,20 @@ class GuandanAIAgent:
                 # 游戏未开始
                 if "游戏未开始" in error_msg:
                     if consecutive_errors <= 1:  # 只打印第一次
-                        print(f"[AI-{self.player_id}] ⏳ 等待游戏开始...")
+                        self._log("⏳ 等待游戏开始...")
                 # 连接错误
                 elif "无法连接" in error_msg or "超时" in error_msg:
                     if consecutive_errors % 10 == 1:  # 每10次错误打印一次
-                        print(f"[AI-{self.player_id}] ⚠️  {error_msg}")
+                        self._log(f"⚠️  {error_msg}")
                 else:
-                    print(f"[AI-{self.player_id}] ❌ {error_msg}")
+                    self._log(f"❌ {error_msg}")
                 
                 # 检查是否应该停止
                 if self.stop_event.wait(2):  # 等待2秒或直到事件被设置
                     break
                 turns += 1
         
-        print(f"[AI-{self.player_id}] 🛑 AI Agent已停止")
+        self._log("🛑 AI Agent已停止")
 
 
 def start_ai_agents():
@@ -220,13 +232,24 @@ def start_ai_agents():
     ]
 
     threads = []
-    for agent in agents:
+    for i, agent in enumerate(agents):
+        def run_agent_safe(ag=agent, idx=i):
+            """安全的 agent 运行包装"""
+            try:
+                print(f"[启动] 第 {idx+1} 个 Agent 线程已启动", flush=True)
+                ag.run()
+            except Exception as e:
+                print(f"[启动] 第 {idx+1} 个 Agent 线程异常: {e}", flush=True)
+                import traceback
+                traceback.print_exc()
+        
         # 使用 daemon=True，这样在极端情况下主进程退出时线程不会阻塞退出
-        t = threading.Thread(target=agent.run, daemon=True)
+        t = threading.Thread(target=run_agent_safe, daemon=True)
         t.start()
         threads.append(t)
+        print(f"[启动] 已启动第 {i+1} 个 Agent 线程", flush=True)
 
-    print("所有AI Agent已启动（按 Ctrl+C 退出）")
+    print("所有AI Agent已启动（按 Ctrl+C 退出）", flush=True)
 
 
 def shutdown_agents():
@@ -238,6 +261,7 @@ def shutdown_agents():
     for t in threads:
         t.join(timeout=5)
     print("✅ 所有 AI Agent 已停止")
+    print("=" * 50)
 
 
 # 全局容器
@@ -255,10 +279,12 @@ if __name__ == '__main__':
     print("4. 在另一个终端运行这个脚本: python ai_agent.py")
     print("=" * 50)
     print("按 Ctrl+C 停止 AI Agent（可能有最多 ~3 秒等待，取决于当前网络请求 timeout）")
-    print("=" * 50)
+    print("=" * 50, flush=True)
 
     input("按Enter键启动AI Agent...")
+    print("正在启动 AI Agent...", flush=True)
     start_ai_agents()
+    print("AI Agent 启动完成，等待游戏开始...", flush=True)
 
     try:
         # 主线程保持轻量循环，确保 KeyboardInterrupt 能被捕获
