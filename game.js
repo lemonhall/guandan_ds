@@ -309,7 +309,7 @@ class GuandanGame {
 
     // 开始定期轮询
     startPolling() {
-        // 每2秒更新一次游戏状态
+        // 每5秒更新一次游戏状态（减少服务器压力）
         this.pollInterval = setInterval(async () => {
             if (this.gameStarted) {
                 await this.updateGameState();
