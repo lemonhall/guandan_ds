@@ -8,6 +8,7 @@ class GuandanGame {
         this.selectedCards = [];
         this.gameState = null;
         this.pollInterval = null;
+        this.lastDisplayedPlayId = -1; // 追踪最后显示的出牌ID
         
         this.initEventListeners();
     }
@@ -135,6 +136,11 @@ class GuandanGame {
         if (this.selectedCards.length === 0) return;
         
         try {
+            // 生成牌的显示字符串
+            const cardStr = this.selectedCards
+                .map(c => `${c.value}${c.suit}`)
+                .join('、');
+            
             const response = await fetch(`${this.SERVER_URL}/game/play`, {
                 method: 'POST',
                 headers: {
@@ -149,7 +155,10 @@ class GuandanGame {
             const result = await response.json();
             
             if (result.success) {
-                this.addLog(`✅ 我出了${result.nextPlayer ? '(成功)' : ''}`, 'play');
+                // 获取出牌后的游戏状态来显示牌型
+                await this.updateGameState();
+                const cardType = this.gameState?.lastPlay?.cardType?.name || '单牌';
+                this.addLog(`✅ 我出了 ${cardType}: ${cardStr}`, 'play');
                 
                 if (result.gameOver && result.winner) {
                     this.addLog(`🎉 ${result.winner} 获胜！游戏结束！`, 'info');
@@ -232,6 +241,29 @@ class GuandanGame {
             // 更新出牌显示
             if (data.lastPlay) {
                 this.displayPlayedCards(data.lastPlay);
+                
+                // 检查游戏历史中是否有新的出牌（来自其他玩家）
+                if (data.gameState && data.gameState.playHistory) {
+                    const history = data.gameState.playHistory;
+                    if (history.length > this.lastDisplayedPlayId) {
+                        // 有新的出牌记录
+                        for (let i = this.lastDisplayedPlayId + 1; i < history.length; i++) {
+                            const record = history[i];
+                            if (record.playerId !== this.playerId) {  // 不显示自己的
+                                if (record.isPass) {
+                                    this.addLog(`${record.playerName} 过了`, 'pass');
+                                } else {
+                                    const cardStr = record.cards
+                                        .map(c => `${c.value}${c.suit}`)
+                                        .join('、');
+                                    const cardType = record.cardType?.name || '出牌';
+                                    this.addLog(`${record.playerName} 出了 ${cardType}: ${cardStr}`, 'play');
+                                }
+                            }
+                        }
+                        this.lastDisplayedPlayId = history.length - 1;
+                    }
+                }
             }
             
             // 更新按钮状态
@@ -296,32 +328,7 @@ class GuandanGame {
             clearInterval(this.pollInterval);
         }
     }
-
-    // 创建牌组（2副牌）
-    createDeck() {
-        const suits = ['♠', '♥', '♦', '♣'];
-        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-        const deck = [];
-
-        // 创建两副牌
-        for (let i = 0; i < 2; i++) {
-            for (let suit of suits) {
-                for (let value of values) {
-                    deck.push({
-                        suit: suit,
-                        value: value,
-                        isRed: suit === '♥' || suit === '♦',
-                        sortValue: this.getCardSortValue(value)
-                    });
-                }
-            }
-            // 添加大小王
-            deck.push({ suit: 'Joker', value: '小王', isRed: true, sortValue: 14 });
-            deck.push({ suit: 'Joker', value: '大王', isRed: true, sortValue: 15 });
-        }
 }
 
 // 初始化游戏
 var game = new GuandanGame();
-
-
