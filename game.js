@@ -169,6 +169,9 @@ class GuandanGame {
             <div class="card-suit">${card.suit}</div>
         `;
         
+        // 使用 data-index 标记卡牌在手牌中的位置
+        cardDiv.dataset.index = index;
+        
         cardDiv.addEventListener('click', () => {
             this.toggleCardSelection(index, cardDiv, card);
         });
@@ -180,22 +183,24 @@ class GuandanGame {
     toggleCardSelection(index, cardDiv, card) {
         if (!this.gameStarted || !this.gameState?.isMyTurn) return;
         
-        // 检查是否已选中
-        const isSelected = this.selectedCards.some(c => 
-            c.suit === card.suit && c.value === card.value
-        );
+        // 使用 index 来唯一标识每张卡牌（解决同值多张卡的问题）
+        const isSelected = this.selectedCards.some(c => c.originalIndex === index);
         
         if (isSelected) {
-            this.selectedCards = this.selectedCards.filter(c => 
-                !(c.suit === card.suit && c.value === card.value)
-            );
+            // 移除这张特定的卡牌
+            this.selectedCards = this.selectedCards.filter(c => c.originalIndex !== index);
             cardDiv.classList.remove('selected');
         } else {
-            this.selectedCards.push(card);
+            // 添加时保留原始索引
+            const cardWithIndex = { ...card, originalIndex: index };
+            this.selectedCards.push(cardWithIndex);
             cardDiv.classList.add('selected');
         }
         
         document.getElementById('playBtn').disabled = this.selectedCards.length === 0;
+        
+        // 显示已选卡牌数量
+        console.log(`已选择: ${this.selectedCards.length} 张`, this.selectedCards.map(c => `${c.value}${c.suit}`));
     }
 
     // 出牌
@@ -208,6 +213,12 @@ class GuandanGame {
                 .map(c => `${c.value}${c.suit}`)
                 .join('、');
             
+            // 移除 originalIndex，只保留 value, suit, sortValue 等字段
+            const cardsToSend = this.selectedCards.map(c => {
+                const { originalIndex, ...cardData } = c;
+                return cardData;
+            });
+            
             const response = await fetch(`${this.SERVER_URL}/game/play`, {
                 method: 'POST',
                 headers: {
@@ -215,7 +226,7 @@ class GuandanGame {
                 },
                 body: JSON.stringify({
                     playerId: this.playerId,
-                    cards: this.selectedCards
+                    cards: cardsToSend
                 })
             });
             

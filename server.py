@@ -201,26 +201,37 @@ class GameState:
         if not cards:
             return None
         
+        card_values = [c['value'] for c in cards]
+        card_count = len(cards)
+        print(f"[validate_card_type] 验证 {card_count} 张牌: 值={card_values}")
+        
         # 单牌
         if len(cards) == 1:
+            print(f"[validate_card_type] ✅ 识别为单牌")
             return {'name': '单牌', 'rank': 1}
         
         # 对子
         if len(cards) == 2:
             if cards[0]['value'] == cards[1]['value']:
+                print(f"[validate_card_type] ✅ 识别为对子")
                 return {'name': '对子', 'rank': 2}
         
         # 三张
         if len(cards) == 3:
             if cards[0]['value'] == cards[1]['value'] == cards[2]['value']:
+                print(f"[validate_card_type] ✅ 识别为三张")
                 return {'name': '三张', 'rank': 3}
         
         # 炸弹（4张及以上相同）
         if len(cards) >= 4:
             values = [c['value'] for c in cards]
             if len(set(values)) == 1:
+                print(f"[validate_card_type] ✅ 识别为炸弹({len(cards)}张)")
                 return {'name': f'炸弹({len(cards)}张)', 'rank': 10 + len(cards)}
+            else:
+                print(f"[validate_card_type] ❌ {card_count}张牌但值不同: {set(values)}")
         
+        print(f"[validate_card_type] ❌ 无法识别的牌型")
         return None
     
     def can_beat(self, cards, card_type, last_play):
@@ -231,14 +242,21 @@ class GameState:
         last_type = last_play['cardType']
         last_cards = last_play['cards']
         
+        # 调试输出
+        print(f"[can_beat] 尝试用 {card_type['name']}(rank={card_type['rank']}) 压过 {last_type['name']}(rank={last_type['rank']})")
+        
         # 炸弹可以压任何非炸弹
         if card_type['rank'] >= 10 and last_type['rank'] < 10:
+            print(f"[can_beat] ✅ 炸弹压非炸弹")
             return True
         
         # 同类型比大小
         if card_type['name'] == last_type['name']:
-            return cards[0]['sortValue'] > last_cards[0]['sortValue']
+            result = cards[0]['sortValue'] > last_cards[0]['sortValue']
+            print(f"[can_beat] 同类型比较: {cards[0]['sortValue']} > {last_cards[0]['sortValue']} = {result}")
+            return result
         
+        print(f"[can_beat] ❌ 牌型不同且不是炸弹")
         return False
     
     def play(self, player_id, cards):
