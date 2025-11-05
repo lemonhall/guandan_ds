@@ -288,11 +288,13 @@ class GameState:
         self.play_history.append(record)
         
         # 推送 SSE 事件
+        card_str = '、'.join([f"{c['value']}{c['suit']}" for c in cards])
         sse_event_queue.put({
             'type': 'play',
             'playerName': player.name,
             'playerId': player_id,
             'cardType': card_type['name'],
+            'cards': card_str,
             'cardCount': len(player.cards)
         })
         

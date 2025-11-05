@@ -109,7 +109,7 @@ class GuandanGame {
                 } else if (data.type === 'play') {
                     // 出牌事件
                     if (data.playerId !== this.playerId) {
-                        this.addLog(`${data.playerName} 出了 ${data.cardType}`, 'play');
+                        this.addLog(`${data.playerName} 出了 ${data.cardType}: ${data.cards}`, 'play');
                     }
                     // 更新游戏状态
                     this.updateGameState();
